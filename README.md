@@ -41,3 +41,7 @@ ChromeCertificatePolicyManager.exe --self-test --registry-path Software\ChromeCe
 ```
 
 The self-test uses a temporary subkey and does not modify Chrome policies.
+
+## License
+
+This project is released under the [Unlicense](UNLICENSE).
