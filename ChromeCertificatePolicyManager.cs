@@ -17,6 +17,30 @@ namespace ChromeCertificatePolicyManager
     internal static class Program
     {
         internal const string DefaultRegistryPath = @"Software\Policies\Google\Chrome";
+        private const string VersionResourceName = "ChromeCertificatePolicyManager.VERSION";
+
+        internal static readonly string Version = LoadVersion();
+
+        internal static string WindowTitle
+        {
+            get { return "Политики сертификатов Chrome — " + Version; }
+        }
+
+        private static string LoadVersion()
+        {
+            using (Stream stream = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream(VersionResourceName))
+            {
+                if (stream == null)
+                {
+                    return "неизвестная версия";
+                }
+
+                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8, true))
+                {
+                    return reader.ReadToEnd().Trim();
+                }
+            }
+        }
 
         [STAThread]
         private static int Main(string[] args)
@@ -244,6 +268,50 @@ namespace ChromeCertificatePolicyManager
         }
     }
 
+    internal static class PolicyBackup
+    {
+        private const int CurrentFormatVersion = 1;
+
+        private sealed class BackupDocument
+        {
+            public int FormatVersion { get; set; }
+            public string CreatedAtUtc { get; set; }
+            public PolicyState Policy { get; set; }
+        }
+
+        public static void Save(string path, PolicyState state)
+        {
+            BackupDocument document = new BackupDocument
+            {
+                FormatVersion = CurrentFormatVersion,
+                CreatedAtUtc = DateTime.UtcNow.ToString("o", CultureInfo.InvariantCulture),
+                Policy = state
+            };
+
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            serializer.MaxJsonLength = Int32.MaxValue;
+            File.WriteAllText(path, serializer.Serialize(document), new UTF8Encoding(false));
+        }
+
+        public static PolicyState Load(string path)
+        {
+            JavaScriptSerializer serializer = new JavaScriptSerializer();
+            serializer.MaxJsonLength = Int32.MaxValue;
+            BackupDocument document = serializer.Deserialize<BackupDocument>(File.ReadAllText(path, Encoding.UTF8));
+            if (document == null || document.FormatVersion != CurrentFormatVersion || document.Policy == null)
+            {
+                throw new InvalidDataException("Неподдерживаемый формат резервной копии.");
+            }
+
+            if (document.Policy.Entries == null)
+            {
+                document.Policy.Entries = new List<CertificatePolicyEntry>();
+            }
+
+            return document.Policy;
+        }
+    }
+
     internal sealed class MainForm : Form
     {
         private readonly PolicyStore store;
@@ -264,7 +332,7 @@ namespace ChromeCertificatePolicyManager
 
         private void InitializeUi()
         {
-            Text = "Политики сертификатов Chrome";
+            Text = Program.WindowTitle;
             Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(850, 500);
@@ -306,18 +374,22 @@ namespace ChromeCertificatePolicyManager
             grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
             grid.CellDoubleClick += GridCellDoubleClick;
 
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Сертификат", DataPropertyName = "Name", Width = 240 });
-            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "SHA-1", DataPropertyName = "Thumbprint", Width = 290 });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Сертификат", DataPropertyName = "Name", Width = 220 });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "SHA-1", DataPropertyName = "Thumbprint", Width = 270 });
             grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Разрешённые DNS-имена", DataPropertyName = "DnsNames", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, DefaultCellStyle = new DataGridViewCellStyle { WrapMode = DataGridViewTriState.True } });
+            grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Разрешённые CIDR-сети", DataPropertyName = "Cidrs", Width = 170, DefaultCellStyle = new DataGridViewCellStyle { WrapMode = DataGridViewTriState.True } });
             grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Действует до", DataPropertyName = "NotAfter", Width = 95 });
             layout.Controls.Add(grid, 0, 2);
 
             FlowLayoutPanel entryButtons = new FlowLayoutPanel();
             entryButtons.AutoSize = true;
             entryButtons.Margin = new Padding(0, 10, 0, 6);
+            entryButtons.WrapContents = false;
             entryButtons.Controls.Add(CreateButton("Добавить сертификат…", AddCertificate));
-            entryButtons.Controls.Add(CreateButton("Изменить домены…", EditDomains));
+            entryButtons.Controls.Add(CreateButton("Изменить ограничения…", EditConstraints));
             entryButtons.Controls.Add(CreateButton("Удалить", RemoveCertificate));
+            entryButtons.Controls.Add(CreateButton("Экспорт…", ExportPolicies));
+            entryButtons.Controls.Add(CreateButton("Импорт…", ImportPolicies));
             layout.Controls.Add(entryButtons, 0, 3);
 
             TableLayoutPanel footer = new TableLayoutPanel();
@@ -378,7 +450,7 @@ namespace ChromeCertificatePolicyManager
         {
             if (!String.Equals(registryPath, Program.DefaultRegistryPath, StringComparison.OrdinalIgnoreCase))
             {
-                Text = "Политики сертификатов Chrome — тестовый раздел";
+                Text = Program.WindowTitle + " — тестовый раздел";
                 return;
             }
 
@@ -410,6 +482,7 @@ namespace ChromeCertificatePolicyManager
                         Name = GetCertificateName(certificate),
                         Thumbprint = certificate.Thumbprint,
                         DnsNames = String.Join(", ", entry.DnsNames),
+                        Cidrs = String.Join(", ", entry.Cidrs),
                         NotAfter = certificate.NotAfter.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                         Entry = entry
                     });
@@ -436,7 +509,7 @@ namespace ChromeCertificatePolicyManager
                     using (X509Certificate2 certificate = new X509Certificate2(dialog.FileName))
                     {
                         EnsureCertificateAuthority(certificate);
-                        if (entries.Any(item => String.Equals(item.GetCertificate().Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase)))
+                        if (ContainsCertificate(certificate.Thumbprint))
                         {
                             MessageBox.Show("Этот сертификат уже добавлен.", "Сертификат", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             return;
@@ -468,10 +541,10 @@ namespace ChromeCertificatePolicyManager
 
             grid.ClearSelection();
             grid.Rows[e.RowIndex].Selected = true;
-            EditDomains(sender, EventArgs.Empty);
+            EditConstraints(sender, EventArgs.Empty);
         }
 
-        private void EditDomains(object sender, EventArgs e)
+        private void EditConstraints(object sender, EventArgs e)
         {
             GridRow row = SelectedRow();
             if (row == null)
@@ -480,9 +553,11 @@ namespace ChromeCertificatePolicyManager
             }
 
             List<string> domains;
-            if (DomainDialog.TryEdit(this, row.Name, row.Entry.DnsNames, out domains))
+            List<string> cidrs;
+            if (ConstraintsDialog.TryEdit(this, row.Name, row.Entry.DnsNames, row.Entry.Cidrs, out domains, out cidrs))
             {
                 row.Entry.DnsNames = domains;
+                row.Entry.Cidrs = cidrs;
                 RefreshGrid();
             }
         }
@@ -528,6 +603,13 @@ namespace ChromeCertificatePolicyManager
                 PolicyState state = new PolicyState();
                 state.PlatformIntegrationEnabled = platformIntegration.Checked;
                 state.Entries.AddRange(entries);
+
+                PolicyState current = store.Load();
+                if (!PolicyStatesEqual(current, state) && !OfferBackup(current, "сохранением новых настроек"))
+                {
+                    return;
+                }
+
                 store.Save(state);
                 ReloadPolicies();
                 PoliciesSavedDialog.ShowSaved(this);
@@ -551,12 +633,132 @@ namespace ChromeCertificatePolicyManager
 
             try
             {
+                PolicyState current = store.Load();
+                if (!OfferBackup(current, "сбросом политик"))
+                {
+                    return;
+                }
+
                 store.Reset();
                 ReloadPolicies();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Не удалось сбросить политики:\n\n" + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ExportPolicies(object sender, EventArgs e)
+        {
+            try
+            {
+                ExportPolicyState(store.Load());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Не удалось экспортировать политики:\n\n" + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ImportPolicies(object sender, EventArgs e)
+        {
+            using (OpenFileDialog dialog = new OpenFileDialog())
+            {
+                dialog.Filter = "Резервные копии политик (*.json)|*.json|Все файлы (*.*)|*.*";
+                dialog.Title = "Выберите резервную копию";
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    PolicyState state = PolicyBackup.Load(dialog.FileName);
+                    ValidatePolicyState(state);
+                    platformIntegration.Checked = !state.PlatformIntegrationEnabled.HasValue || state.PlatformIntegrationEnabled.Value;
+                    entries.Clear();
+                    entries.AddRange(state.Entries);
+                    RefreshGrid();
+                    policyStatus.Text = "Резервная копия загружена. Проверьте настройки и нажмите «Сохранить».";
+                    policyStatus.ForeColor = Color.DarkGreen;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Не удалось импортировать политики:\n\n" + ex.Message, "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private bool OfferBackup(PolicyState current, string action)
+        {
+            if (!HasConfiguredPolicies(current))
+            {
+                return true;
+            }
+
+            DialogResult answer = MessageBox.Show(
+                "Создать резервную копию текущих политик перед " + action + "?",
+                "Резервная копия",
+                MessageBoxButtons.YesNoCancel,
+                MessageBoxIcon.Question);
+
+            if (answer == DialogResult.Cancel)
+            {
+                return false;
+            }
+
+            return answer != DialogResult.Yes || ExportPolicyState(current);
+        }
+
+        private bool ExportPolicyState(PolicyState state)
+        {
+            using (SaveFileDialog dialog = new SaveFileDialog())
+            {
+                dialog.AddExtension = true;
+                dialog.DefaultExt = "json";
+                dialog.Filter = "Резервные копии политик (*.json)|*.json";
+                dialog.FileName = "ChromeCertificatePolicy-" + DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture) + ".json";
+                dialog.Title = "Сохранить резервную копию";
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return false;
+                }
+
+                PolicyBackup.Save(dialog.FileName, state);
+                MessageBox.Show("Резервная копия сохранена:\n\n" + dialog.FileName, "Резервная копия", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return true;
+            }
+        }
+
+        private bool PolicyStatesEqual(PolicyState left, PolicyState right)
+        {
+            return left.PlatformIntegrationEnabled == right.PlatformIntegrationEnabled &&
+                String.Equals(store.SerializeEntries(left.Entries), store.SerializeEntries(right.Entries), StringComparison.Ordinal);
+        }
+
+        private static bool HasConfiguredPolicies(PolicyState state)
+        {
+            return state.PlatformIntegrationEnabled.HasValue || state.Entries.Count > 0;
+        }
+
+        private static void ValidatePolicyState(PolicyState state)
+        {
+            foreach (CertificatePolicyEntry entry in state.Entries)
+            {
+                if (entry == null || String.IsNullOrWhiteSpace(entry.CertificateBase64))
+                {
+                    throw new InvalidDataException("Резервная копия содержит пустой сертификат.");
+                }
+
+                entry.DnsNames = entry.DnsNames ?? new List<string>();
+                entry.Cidrs = entry.Cidrs ?? new List<string>();
+                entry.DnsNames = ConstraintsDialog.ParseDomains(String.Join(Environment.NewLine, entry.DnsNames));
+                entry.Cidrs = ConstraintsDialog.ParseCidrs(String.Join(Environment.NewLine, entry.Cidrs));
+
+                using (X509Certificate2 certificate = entry.GetCertificate())
+                {
+                    EnsureCertificateAuthority(certificate);
+                }
             }
         }
 
@@ -571,6 +773,22 @@ namespace ChromeCertificatePolicyManager
             }
         }
 
+        private bool ContainsCertificate(string thumbprint)
+        {
+            foreach (CertificatePolicyEntry entry in entries)
+            {
+                using (X509Certificate2 certificate = entry.GetCertificate())
+                {
+                    if (String.Equals(certificate.Thumbprint, thumbprint, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private static string GetCertificateName(X509Certificate2 certificate)
         {
             string name = certificate.GetNameInfo(X509NameType.SimpleName, false);
@@ -582,6 +800,7 @@ namespace ChromeCertificatePolicyManager
             public string Name { get; set; }
             public string Thumbprint { get; set; }
             public string DnsNames { get; set; }
+            public string Cidrs { get; set; }
             public string NotAfter { get; set; }
             public CertificatePolicyEntry Entry { get; set; }
         }
@@ -601,48 +820,71 @@ namespace ChromeCertificatePolicyManager
             MaximizeBox = false;
             MinimizeBox = false;
             ShowInTaskbar = false;
-            ClientSize = new Size(520, 190);
+            AutoSize = true;
+            AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            Padding = new Padding(12);
+            Font = new Font("Segoe UI", 9F);
+
+            TableLayoutPanel layout = new TableLayoutPanel();
+            layout.AutoSize = true;
+            layout.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            layout.ColumnCount = 1;
+            layout.RowCount = 5;
+            layout.Dock = DockStyle.Fill;
+            Controls.Add(layout);
 
             Label saved = new Label();
             saved.AutoSize = true;
-            saved.Location = new Point(18, 18);
             saved.Text = "Политики сохранены. Chrome должен быть запущен.";
-            Controls.Add(saved);
+            saved.Margin = new Padding(0, 0, 0, 10);
+            layout.Controls.Add(saved, 0, 0);
+
+            FlowLayoutPanel refreshPanel = new FlowLayoutPanel();
+            refreshPanel.AutoSize = true;
+            refreshPanel.WrapContents = false;
+            refreshPanel.Margin = new Padding(0, 0, 0, 10);
+            layout.Controls.Add(refreshPanel, 0, 1);
 
             Button refresh = new Button();
             refresh.AutoSize = true;
-            refresh.Location = new Point(18, 48);
             refresh.Text = "Повторно загрузить правила Chrome";
             refresh.Click += RefreshPolicies;
-            Controls.Add(refresh);
+            refreshPanel.Controls.Add(refresh);
 
             refreshStatus.AutoSize = true;
-            refreshStatus.Location = new Point(18, 54);
+            refreshStatus.Anchor = AnchorStyles.Left;
             refreshStatus.ForeColor = Color.ForestGreen;
             refreshStatus.Font = new Font(Font, FontStyle.Bold);
-            refreshStatus.Text = "✓ Настройки Chrome обновлены";
+            refreshStatus.Text = "✓ Команда обновления передана Chrome";
             refreshStatus.Visible = false;
-            Controls.Add(refreshStatus);
+            refreshPanel.Controls.Add(refreshStatus);
 
             Label verification = new Label();
             verification.AutoSize = true;
-            verification.Location = new Point(18, 88);
             verification.Text = "Для ручной проверки скопируйте адрес и вставьте его в Chrome:";
-            Controls.Add(verification);
+            verification.Margin = new Padding(0, 0, 0, 6);
+            layout.Controls.Add(verification, 0, 2);
 
             LinkLabel policyLink = new LinkLabel();
             policyLink.AutoSize = true;
-            policyLink.Location = new Point(18, 112);
             policyLink.Text = "Скопировать chrome://policy/";
             policyLink.LinkClicked += CopyPolicyUrl;
-            Controls.Add(policyLink);
+            policyLink.Margin = new Padding(0, 0, 0, 12);
+            layout.Controls.Add(policyLink, 0, 3);
+
+            FlowLayoutPanel buttons = new FlowLayoutPanel();
+            buttons.AutoSize = true;
+            buttons.FlowDirection = FlowDirection.RightToLeft;
+            buttons.WrapContents = false;
+            buttons.Dock = DockStyle.Fill;
+            buttons.Margin = new Padding(0);
+            layout.Controls.Add(buttons, 0, 4);
 
             Button close = new Button();
             close.AutoSize = true;
             close.DialogResult = DialogResult.OK;
-            close.Location = new Point(427, 147);
             close.Text = "Закрыть";
-            Controls.Add(close);
+            buttons.Controls.Add(close);
             AcceptButton = close;
         }
 
@@ -704,98 +946,137 @@ namespace ChromeCertificatePolicyManager
         }
     }
 
-    internal sealed class DomainDialog : Form
+    internal sealed class ConstraintsDialog : Form
     {
         private readonly TextBox domains = new TextBox();
+        private readonly TextBox cidrs = new TextBox();
 
-        private DomainDialog(string certificateName, IEnumerable<string> currentDomains)
+        private ConstraintsDialog(string certificateName, IEnumerable<string> currentDomains, IEnumerable<string> currentCidrs)
         {
-            Text = "Разрешённые домены";
+            Text = "Ограничения сертификата";
             Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
             StartPosition = FormStartPosition.CenterParent;
             MinimizeBox = false;
-            MaximizeBox = false;
-            FormBorderStyle = FormBorderStyle.FixedDialog;
-            ClientSize = new Size(560, 360);
+            ShowInTaskbar = false;
+            MinimumSize = new Size(560, 460);
+            Size = new Size(680, 560);
             Font = new Font("Segoe UI", 9F);
+
+            TableLayoutPanel layout = new TableLayoutPanel();
+            layout.Dock = DockStyle.Fill;
+            layout.Padding = new Padding(16);
+            layout.ColumnCount = 1;
+            layout.RowCount = 6;
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            Controls.Add(layout);
 
             Label certificate = new Label();
             certificate.AutoSize = true;
-            certificate.MaximumSize = new Size(520, 0);
-            certificate.Location = new Point(16, 16);
             certificate.Text = certificateName;
-            Controls.Add(certificate);
+            certificate.Margin = new Padding(0, 0, 0, 12);
+            layout.Controls.Add(certificate, 0, 0);
 
-            Label hint = new Label();
-            hint.AutoSize = true;
-            hint.MaximumSize = new Size(520, 0);
-            hint.Location = new Point(16, 52);
-            hint.Text = "По одному DNS-имени на строку, без схемы, порта и пути. Для основного домена и его поддоменов укажите две строки: gosuslugi.ru и .gosuslugi.ru";
-            Controls.Add(hint);
+            Label dnsHint = new Label();
+            dnsHint.AutoSize = true;
+            dnsHint.Text = "DNS-имена — по одному на строку, без схемы, порта и пути.\nДля домена и поддоменов: gosuslugi.ru и .gosuslugi.ru";
+            dnsHint.Margin = new Padding(0, 0, 0, 6);
+            layout.Controls.Add(dnsHint, 0, 1);
 
-            domains.Multiline = true;
-            domains.AcceptsReturn = true;
-            domains.ScrollBars = ScrollBars.Vertical;
-            domains.Location = new Point(16, 96);
-            domains.Size = new Size(528, 205);
+            ConfigureMultilineTextBox(domains);
             domains.Text = String.Join(Environment.NewLine, currentDomains);
-            Controls.Add(domains);
+            domains.Margin = new Padding(0, 0, 0, 12);
+            layout.Controls.Add(domains, 0, 2);
+
+            Label cidrHint = new Label();
+            cidrHint.AutoSize = true;
+            cidrHint.Text = "CIDR-сети — по одной на строку, например 10.1.1.0/24 или 2001:db8::/64.";
+            cidrHint.Margin = new Padding(0, 0, 0, 6);
+            layout.Controls.Add(cidrHint, 0, 3);
+
+            ConfigureMultilineTextBox(cidrs);
+            cidrs.Text = String.Join(Environment.NewLine, currentCidrs);
+            cidrs.Margin = new Padding(0, 0, 0, 12);
+            layout.Controls.Add(cidrs, 0, 4);
+
+            FlowLayoutPanel buttons = new FlowLayoutPanel();
+            buttons.AutoSize = true;
+            buttons.Dock = DockStyle.Fill;
+            buttons.FlowDirection = FlowDirection.RightToLeft;
+            buttons.WrapContents = false;
+            buttons.Margin = new Padding(0);
+            layout.Controls.Add(buttons, 0, 5);
 
             Button cancel = new Button();
+            cancel.AutoSize = true;
             cancel.Text = "Отмена";
             cancel.DialogResult = DialogResult.Cancel;
-            cancel.Location = new Point(378, 317);
-            cancel.Size = new Size(80, 28);
-            Controls.Add(cancel);
+            buttons.Controls.Add(cancel);
 
             Button ok = new Button();
+            ok.AutoSize = true;
             ok.Text = "ОК";
-            ok.Location = new Point(464, 317);
-            ok.Size = new Size(80, 28);
             ok.Click += ValidateAndClose;
-            Controls.Add(ok);
+            buttons.Controls.Add(ok);
 
             CancelButton = cancel;
         }
 
-        public List<string> Result { get; private set; }
+        public List<string> ResultDomains { get; private set; }
+        public List<string> ResultCidrs { get; private set; }
 
-        public static bool TryEdit(IWin32Window owner, string certificateName, IEnumerable<string> currentDomains, out List<string> result)
+        public static bool TryEdit(
+            IWin32Window owner,
+            string certificateName,
+            IEnumerable<string> currentDomains,
+            IEnumerable<string> currentCidrs,
+            out List<string> resultDomains,
+            out List<string> resultCidrs)
         {
-            using (DomainDialog dialog = new DomainDialog(certificateName, currentDomains))
+            using (ConstraintsDialog dialog = new ConstraintsDialog(certificateName, currentDomains, currentCidrs))
             {
                 bool accepted = dialog.ShowDialog(owner) == DialogResult.OK;
-                result = accepted ? dialog.Result : null;
+                resultDomains = accepted ? dialog.ResultDomains : null;
+                resultCidrs = accepted ? dialog.ResultCidrs : null;
                 return accepted;
             }
+        }
+
+        private static void ConfigureMultilineTextBox(TextBox textBox)
+        {
+            textBox.AcceptsReturn = true;
+            textBox.Dock = DockStyle.Fill;
+            textBox.Multiline = true;
+            textBox.ScrollBars = ScrollBars.Vertical;
         }
 
         private void ValidateAndClose(object sender, EventArgs e)
         {
             try
             {
-                Result = ParseDomains(domains.Text);
+                ResultDomains = ParseDomains(domains.Text);
+                ResultCidrs = ParseCidrs(cidrs.Text);
+                if (ResultDomains.Count == 0 && ResultCidrs.Count == 0)
+                {
+                    throw new InvalidDataException("Укажите хотя бы одно DNS-имя или CIDR-сеть.");
+                }
+
                 DialogResult = DialogResult.OK;
                 Close();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Неверное DNS-имя", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(ex.Message, "Неверное ограничение", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
         internal static List<string> ParseDomains(string text)
         {
-            string[] parts = Regex.Split(text ?? String.Empty, @"[\r\n,;]+")
-                .Select(part => part.Trim())
-                .Where(part => part.Length > 0)
-                .ToArray();
-
-            if (parts.Length == 0)
-            {
-                throw new InvalidDataException("Укажите хотя бы одно DNS-имя.");
-            }
-
+            string[] parts = SplitValues(text);
             IdnMapping idn = new IdnMapping();
             List<string> result = new List<string>();
             foreach (string raw in parts)
@@ -824,6 +1105,58 @@ namespace ChromeCertificatePolicyManager
 
             return result;
         }
+
+        internal static List<string> ParseCidrs(string text)
+        {
+            List<string> result = new List<string>();
+            foreach (string raw in SplitValues(text))
+            {
+                string[] parts = raw.Split('/');
+                int prefixLength;
+                System.Net.IPAddress address;
+                if (parts.Length != 2 || raw.Contains("%") ||
+                    !System.Net.IPAddress.TryParse(parts[0], out address) ||
+                    !Int32.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out prefixLength))
+                {
+                    throw new InvalidDataException("Недопустимая CIDR-сеть: " + raw);
+                }
+
+                byte[] bytes = address.GetAddressBytes();
+                int maximumPrefixLength = bytes.Length * 8;
+                if (prefixLength < 0 || prefixLength > maximumPrefixLength)
+                {
+                    throw new InvalidDataException("Недопустимая длина префикса CIDR: " + raw);
+                }
+
+                int wholeBytes = prefixLength / 8;
+                int remainingBits = prefixLength % 8;
+                if (remainingBits > 0)
+                {
+                    bytes[wholeBytes] = (byte)(bytes[wholeBytes] & (0xFF << (8 - remainingBits)));
+                    wholeBytes++;
+                }
+                for (int i = wholeBytes; i < bytes.Length; i++)
+                {
+                    bytes[i] = 0;
+                }
+
+                string normalized = new System.Net.IPAddress(bytes) + "/" + prefixLength.ToString(CultureInfo.InvariantCulture);
+                if (!result.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+                {
+                    result.Add(normalized);
+                }
+            }
+
+            return result;
+        }
+
+        private static string[] SplitValues(string text)
+        {
+            return Regex.Split(text ?? String.Empty, @"[\r\n,;]+")
+                .Select(part => part.Trim())
+                .Where(part => part.Length > 0)
+                .ToArray();
+        }
     }
 
     internal static class SelfTest
@@ -831,6 +1164,7 @@ namespace ChromeCertificatePolicyManager
         public static int Run(string registryPath)
         {
             string testPath = registryPath + "\\SelfTest_" + Guid.NewGuid().ToString("N");
+            string backupPath = Path.Combine(Path.GetTempPath(), "ChromeCertificatePolicyManager-" + Guid.NewGuid().ToString("N") + ".json");
             try
             {
                 PolicyStore store = new PolicyStore(Registry.CurrentUser, testPath);
@@ -838,7 +1172,7 @@ namespace ChromeCertificatePolicyManager
                 {
                     CertificateBase64 = "AQID",
                     DnsNames = new List<string> { "gosuslugi.ru", ".gosuslugi.ru" },
-                    Cidrs = new List<string>()
+                    Cidrs = new List<string> { "10.1.1.0/24" }
                 };
 
                 PolicyState input = new PolicyState();
@@ -850,16 +1184,32 @@ namespace ChromeCertificatePolicyManager
                 if (output.PlatformIntegrationEnabled != false ||
                     output.Entries.Count != 1 ||
                     output.Entries[0].DnsNames.Count != 2 ||
+                    output.Entries[0].Cidrs.Count != 1 ||
                     output.Entries[0].CertificateBase64 != "AQID")
                 {
                     Console.Error.WriteLine("Self-test failed: stored policy differs from loaded policy.");
                     return 1;
                 }
 
-                List<string> parsed = DomainDialog.ParseDomains("GOSUSLUGI.RU\n.пример.рф");
+                List<string> parsed = ConstraintsDialog.ParseDomains("GOSUSLUGI.RU\n.пример.рф");
                 if (parsed.Count != 2 || parsed[0] != "gosuslugi.ru" || !parsed[1].StartsWith(".xn--", StringComparison.Ordinal))
                 {
                     Console.Error.WriteLine("Self-test failed: DNS normalization error.");
+                    return 1;
+                }
+
+                List<string> parsedCidrs = ConstraintsDialog.ParseCidrs("10.1.1.5/24\n2001:db8::1/64");
+                if (parsedCidrs.Count != 2 || parsedCidrs[0] != "10.1.1.0/24" || parsedCidrs[1] != "2001:db8::/64")
+                {
+                    Console.Error.WriteLine("Self-test failed: CIDR normalization error.");
+                    return 1;
+                }
+
+                PolicyBackup.Save(backupPath, input);
+                PolicyState restored = PolicyBackup.Load(backupPath);
+                if (restored.Entries.Count != 1 || restored.Entries[0].Cidrs.Count != 1)
+                {
+                    Console.Error.WriteLine("Self-test failed: backup round-trip error.");
                     return 1;
                 }
 
@@ -876,6 +1226,14 @@ namespace ChromeCertificatePolicyManager
                 try
                 {
                     Registry.CurrentUser.DeleteSubKeyTree(testPath, false);
+                }
+                catch
+                {
+                }
+
+                try
+                {
+                    File.Delete(backupPath);
                 }
                 catch
                 {
