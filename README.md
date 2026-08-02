@@ -1,53 +1,55 @@
 # Chrome Certificate Policy Manager
 
-Windows GUI for two Google Chrome certificate policies:
+Графическое приложение для Windows, управляющее двумя политиками Google Chrome:
 
-- `CAPlatformIntegrationEnabled`
-- `CACertificatesWithConstraints`
+- `CAPlatformIntegrationEnabled`;
+- `CACertificatesWithConstraints`.
 
-The application writes policies for the current Windows user under:
+Приложение записывает политики текущего пользователя в раздел:
 
 ```text
 HKCU\Software\Policies\Google\Chrome
 ```
 
-It does not install or remove certificates from Windows stores. Public roots from Chrome Root Store are not affected.
+Оно не устанавливает и не удаляет сертификаты в хранилищах Windows. Публичные корневые сертификаты из Chrome Root Store также не изменяются.
 
-## Usage
+Те же политики можно настроить без утилиты по инструкции [«Ручная настройка политик через реестр»](MANUAL-REGISTRY.md).
 
-1. Run `ChromeCertificatePolicyManager.exe` and confirm the Windows UAC prompt. Administrator rights are required to write Chrome policies.
-2. Select whether Chrome should trust manually added Windows certificates for HTTPS.
-3. Add a CA certificate file. It appears in the list without DNS constraints.
-4. Select it and click `Изменить ограничения…`, or double-click the row, then specify permitted DNS names and/or CIDR networks.
-5. Save and click `Повторно загрузить правила Chrome`. For manual verification, copy `chrome://policy/` from the dialog and paste it into Chrome. Saving is blocked while a certificate has no DNS or CIDR constraints.
+## Использование
 
-To permit both a base domain and its subdomains, add both forms:
+1. Запустите `ChromeCertificatePolicyManager.exe` и подтвердите запрос UAC. Для записи политик Chrome требуются права администратора.
+2. Укажите, должен ли Chrome доверять добавленным пользователем сертификатам из хранилищ Windows при проверке HTTPS.
+3. Добавьте файл CA-сертификата. Он появится в списке без DNS- и CIDR-ограничений.
+4. Выберите сертификат и нажмите `Изменить ограничения…` либо дважды щёлкните строку. Укажите разрешённые DNS-имена и/или CIDR-сети.
+5. Нажмите `Сохранить`, затем `Повторно загрузить правила Chrome`. Для ручной проверки скопируйте `chrome://policy/` из диалога и вставьте адрес в Chrome. Сохранение невозможно, пока у какого-либо сертификата нет ни одного DNS- или CIDR-ограничения.
+
+Чтобы разрешить основной домен и его поддомены, добавьте обе записи:
 
 ```text
 gosuslugi.ru
 .gosuslugi.ru
 ```
 
-Chrome will display that it is managed because local enterprise policies are configured.
+Chrome будет отображать сообщение об управлении браузером, поскольку в нём настроены локальные корпоративные политики.
 
-Use `Экспорт…` and `Импорт…` to save and restore policy backups. Before overwriting an existing configuration or resetting policies, the application offers to export the current state.
+Кнопка `Экспорт…` сохраняет текущие политики в переносимый JSON-файл. Кнопка `Импорт…` загружает резервную копию в форму; после проверки настроек необходимо нажать `Сохранить`. Перед перезаписью существующей конфигурации или сбросом приложение предлагает экспортировать её текущее состояние.
 
-## Build
+## Сборка
 
-The application version is stored in `VERSION`. Run `build.cmd` to embed the version, Windows file metadata, manifest, and `app.ico` into the executable. The script uses the C# compiler included with .NET Framework in Windows.
+Версия приложения хранится в файле `VERSION`. Запустите `build.cmd`, чтобы встроить в исполняемый файл версию, метаданные Windows, манифест и `app.ico`. Скрипт использует компилятор C#, входящий в состав .NET Framework для Windows.
 
-Run `verify-build.ps1` after building to verify the embedded version, file metadata, manifest, and icon. Pass `-RunSelfTest` to also test registry serialization, DNS and CIDR normalization, and backup round-tripping.
+После сборки запустите `verify-build.ps1`, чтобы проверить встроенную версию, метаданные файла, манифест и иконку. Параметр `-RunSelfTest` дополнительно проверяет сериализацию политик в реестре, нормализацию DNS/CIDR и экспорт с последующим импортом резервной копии.
 
-GitHub Actions builds every push and pull request. A tag matching `v<VERSION>` creates a GitHub Release with the executable and its SHA-256 checksum.
+GitHub Actions собирает приложение при каждом push и pull request. Тег, соответствующий шаблону `v<VERSION>`, создаёт GitHub Release с исполняемым файлом и его контрольной суммой SHA-256.
 
-## Test
+## Тестирование
 
 ```text
 ChromeCertificatePolicyManager.exe --self-test --registry-path Software\ChromeCertificatePolicyManager\Tests
 ```
 
-The self-test uses a temporary subkey and does not modify Chrome policies.
+Self-test использует временный раздел реестра и не изменяет политики Chrome.
 
-## License
+## Лицензия
 
-This project is released under the [Unlicense](UNLICENSE).
+Проект распространяется на условиях [Unlicense](UNLICENSE).
