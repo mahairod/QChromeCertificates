@@ -55,8 +55,17 @@ if ($embeddedVersion -ne $version) {
     throw "Embedded version is '$embeddedVersion', expected '$version'."
 }
 
-if (-not (Select-String -Path $executable -Pattern "requireAdministrator" -SimpleMatch -Quiet)) {
-    throw "The executable does not contain the requireAdministrator manifest."
+if (-not (Select-String -Path $executable -Pattern "asInvoker" -SimpleMatch -Quiet)) {
+    throw "The executable does not contain the asInvoker manifest."
+}
+if (-not (Select-String -Path $executable -Pattern "version=`"$expectedFileVersion`"" -SimpleMatch -Quiet)) {
+    throw "The executable manifest identity does not match VERSION."
+}
+if (-not (Select-String -Path $executable -Pattern "PerMonitorV2" -SimpleMatch -Quiet)) {
+    throw "The executable does not contain the PerMonitorV2 DPI-awareness manifest."
+}
+if (-not (Select-String -Path $executable -Pattern "8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a" -SimpleMatch -Quiet)) {
+    throw "The executable does not declare Windows 10 compatibility."
 }
 
 Add-Type -AssemblyName System.Drawing

@@ -24,6 +24,7 @@ $output = if ([String]::IsNullOrWhiteSpace($OutputPath)) {
     [IO.Path]::GetFullPath($OutputPath)
 }
 $generatedSource = Join-Path ([IO.Path]::GetTempPath()) ("ChromeCertificatePolicyManager.Version.{0}.cs" -f [Guid]::NewGuid().ToString("N"))
+$generatedManifest = Join-Path ([IO.Path]::GetTempPath()) ("ChromeCertificatePolicyManager.Manifest.{0}.manifest" -f [Guid]::NewGuid().ToString("N"))
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $source = @"
 using System.Reflection;
@@ -33,11 +34,19 @@ using System.Reflection;
 [assembly: AssemblyInformationalVersion("$version")]
 [assembly: AssemblyTitle("Chrome Certificate Policy Manager")]
 [assembly: AssemblyProduct("Chrome Certificate Policy Manager")]
-[assembly: AssemblyDescription("Manage constrained certificate authority policies for Google Chrome")]
+[assembly: AssemblyDescription("Manage constrained certificate authority policies for Chromium-based browsers")]
 "@
 
 try {
     [IO.File]::WriteAllText($generatedSource, $source, $utf8)
+    $manifestTemplatePath = Join-Path $projectDirectory "app.manifest"
+    $manifest = [IO.File]::ReadAllText($manifestTemplatePath, [Text.Encoding]::UTF8)
+    $manifestVersionToken = 'version="0.0.0.0"'
+    if (-not $manifest.Contains($manifestVersionToken)) {
+        throw "app.manifest must contain $manifestVersionToken."
+    }
+    $manifest = $manifest.Replace($manifestVersionToken, "version=`"$assemblyVersion`"")
+    [IO.File]::WriteAllText($generatedManifest, $manifest, $utf8)
 
     $target = if ($SelfTestBuild) { "/target:exe" } else { "/target:winexe" }
     $arguments = @(
@@ -57,7 +66,7 @@ try {
 
     if (-not $SelfTestBuild) {
         $arguments = @(
-            "/win32manifest:$projectDirectory\app.manifest",
+            "/win32manifest:$generatedManifest",
             "/win32icon:$projectDirectory\app.ico"
         ) + $arguments
     }
@@ -69,4 +78,5 @@ try {
 }
 finally {
     Remove-Item -LiteralPath $generatedSource -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $generatedManifest -Force -ErrorAction SilentlyContinue
 }
