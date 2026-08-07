@@ -2,6 +2,8 @@
 
 Графическое приложение для Windows, управляющее изолированным набором доверенных CA-сертификатов в четырёх Chromium-браузерах:
 
+Готовый скомпилированный EXE можно скачать на [странице релизов](https://github.com/davidmz/ChromeCertificatePolicyManager/releases). Установка не требуется: достаточно запустить скачанный файл.
+
 - Google Chrome;
 - Microsoft Edge;
 - Brave;
