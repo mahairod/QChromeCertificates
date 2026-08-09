@@ -10,7 +10,8 @@
 static void writeString(QXmlStreamWriter& w, const QString& v) {
 	w.writeTextElement("string", v);
 }
-MacPolicyStore::MacPolicyStore(const BrowserDefinition& b, PolicyScope s) : browser_(b), scope_(s) {}
+MacPolicyStore::MacPolicyStore(const BrowserDefinition& b, PolicyScope s) : browser_(b), scope_(s) {
+}
 QString MacPolicyStore::filePath() const {
 	if (scope_ == PolicyScope::Managed) return "/Library/Managed Preferences/" + browser_.macBundleId + ".plist";
 	return QDir::homePath() + "/Library/Preferences/" + browser_.macBundleId + ".plist";
@@ -31,8 +32,9 @@ PolicyState MacPolicyStore::load() {
 			key = r.readElementText();
 			continue;
 		}
-		if (r.isStartElement() && key == "CAPlatformIntegrationEnabled" && (r.name() == QLatin1String("true") || r.name() == QLatin1String("false"))) {
-			s.platformIntegrationEnabled = r.name() == QLatin1String("false");
+		if (r.isStartElement() && key == "CAPlatformIntegrationEnabled" &&
+		        (r.name() == QLatin1String("true") || r.name() == QLatin1String("false"))) {
+			s.platformIntegrationEnabled = (r.name() == QLatin1String("false"));
 			key.clear();
 			continue;
 		}

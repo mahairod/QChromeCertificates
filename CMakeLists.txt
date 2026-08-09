@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network LinguistTools)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 add_executable(qchrocert
@@ -39,3 +39,8 @@ target_compile_definitions(qchrocert PRIVATE QCC_VERSION="3.0")
 
 include(GNUInstallDirs)
 install(TARGETS qchrocert RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+qt_add_translations(qchrocert
+	TS_FILES translations/qchrocert_ru.ts
+	RESOURCE_PREFIX "/i18n"
+)

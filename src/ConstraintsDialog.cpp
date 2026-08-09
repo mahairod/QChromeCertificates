@@ -24,17 +24,18 @@ QStringList ConstraintsDialog::parseDomains(const QString& text) {
 	for (QString raw : splitValues(text)) {
 		raw = raw.trimmed();
 		if (raw.contains("://") || raw.contains("/") || raw.contains(":") || raw.contains("*"))
-			throw std::runtime_error(("Invalid domain: " + raw).toStdString());
+			throw std::runtime_error(tr("Invalid domain: %1").arg(raw).toStdString());
 		bool dot = raw.startsWith('.');
 		QString v = dot ? raw.mid(1) : raw;
 		v = v.endsWith('.') ? v.chopped(1) : v;
 		QString a = idnAscii(v).toLower();
 		auto labels = a.split('.');
-		if (a.isEmpty() || a.size() > 253) throw std::runtime_error(("Invalid domain: " + raw).toStdString());
+		if (a.isEmpty() || a.size() > 253)
+			throw std::runtime_error(tr("Invalid domain: %1").arg(raw).toStdString());
 		for (auto& l : labels)
 			if (l.isEmpty() || l.size() > 63 || l.startsWith('-') || l.endsWith('-') ||
 				!QRegularExpression("^[a-z0-9-]+$").match(l).hasMatch())
-				throw std::runtime_error(("Invalid domain: " + raw).toStdString());
+				throw std::runtime_error(tr("Invalid domain: %1").arg(raw).toStdString());
 		QString n = (dot ? "." : "") + a;
 		if (!out.contains(n, Qt::CaseInsensitive)) out << n;
 	}
@@ -60,12 +61,12 @@ QStringList ConstraintsDialog::parseCidrs(const QString& text) {
 		auto p = raw.split('/');
 		QHostAddress a;
 		if (p.size() != 2 || raw.contains('%') || !a.setAddress(p[0]))
-			throw std::runtime_error(("Invalid CIDR network: " + raw).toStdString());
+			throw std::runtime_error(tr("Invalid CIDR network: %1").arg(raw).toStdString());
 		bool ok = false;
 		int prefix = p[1].toInt(&ok);
 		int max = a.protocol() == QAbstractSocket::IPv4Protocol ? 32 : 128;
 		if (!ok || prefix < 0 || prefix > max)
-			throw std::runtime_error(("Invalid CIDR prefix length: " + raw).toStdString());
+			throw std::runtime_error(tr("Invalid CIDR prefix length: %1").arg(raw).toStdString());
 		quint32 v = 0;
 		if (a.protocol() == QAbstractSocket::IPv4Protocol) {
 			v = a.toIPv4Address();
@@ -86,18 +87,18 @@ QStringList ConstraintsDialog::parseCidrs(const QString& text) {
 }
 ConstraintsDialog::ConstraintsDialog(QWidget* p, const QString& cert, const QString& issuer, const QStringList& current)
 	: QDialog(p) {
-	setWindowTitle("Allowed domains / Разрешённые домены");
+	setWindowTitle(tr("Allowed domains"));
 	resize(640, 440);
 	auto* l = new QVBoxLayout(this);
-	l->addWidget(new QLabel(cert + "\nIssuer: " + issuer));
+	l->addWidget(new QLabel(tr("Certificate: %1\nIssuer: %2").arg(cert, issuer)));
 	domains_ = new QPlainTextEdit(this);
 	domains_->setPlainText(current.join("\n"));
 	l->addWidget(domains_);
-	includeSubdomains_ = new QCheckBox("Automatically include subdomains / Автоматически включать поддомены", this);
+	includeSubdomains_ = new QCheckBox(tr("Automatically include subdomains"), this);
 	includeSubdomains_->setChecked(true);
 	l->addWidget(includeSubdomains_);
-	auto* ok = new QPushButton("OK", this);
-	auto* cancel = new QPushButton("Cancel", this);
+	auto* ok = new QPushButton(tr("OK"), this);
+	auto* cancel = new QPushButton(tr("Cancel"), this);
 	auto* row = new QHBoxLayout;
 	row->addStretch();
 	row->addWidget(ok);
@@ -110,10 +111,10 @@ void ConstraintsDialog::validate() {
 	try {
 		result_ = parseDomains(domains_->toPlainText());
 		if (includeSubdomains_->isChecked()) result_ = expandSubdomains(result_);
-		if (result_.isEmpty()) throw std::runtime_error("Enter at least one domain.");
+		if (result_.isEmpty()) throw std::runtime_error(tr("Enter at least one domain.").toStdString());
 		accept();
 	} catch (const std::exception& e) {
-		QMessageBox::warning(this, "Invalid domain", e.what());
+		QMessageBox::warning(this, tr("Invalid domain"), e.what());
 	}
 }
 bool ConstraintsDialog::edit(QWidget* p, const QString& cert, const QString& issuer, const QStringList& cur,

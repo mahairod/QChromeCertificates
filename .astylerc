@@ -1,0 +1,7 @@
+# Default style=Google
+--style=google
+
+--indent=tab=4
+--indent-switches
+--align-pointer=type
+--suffix=none

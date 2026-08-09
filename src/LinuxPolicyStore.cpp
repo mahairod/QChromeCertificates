@@ -23,9 +23,11 @@ QString LinuxPolicyStore::filePath() const {
 PolicyState LinuxPolicyStore::load() {
 	PolicyState s;
 	QFile f(filePath());
-	if (!f.open(QIODevice::ReadOnly)) return s;
+	if (!f.open(QIODevice::ReadOnly))
+		return s;
 	auto doc = QJsonDocument::fromJson(f.readAll());
-	if (!doc.isObject()) throw std::runtime_error("Chrome policy file must contain a JSON object.");
+	if (!doc.isObject())
+		throw std::runtime_error("Chrome policy file must contain a JSON object.");
 	auto o = doc.object();
 	if (o.contains("CAPlatformIntegrationEnabled"))
 		s.platformIntegrationEnabled = o["CAPlatformIntegrationEnabled"].toBool();

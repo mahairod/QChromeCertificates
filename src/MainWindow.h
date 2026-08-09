@@ -43,7 +43,7 @@ class MainWindow : public QMainWindow {
 	QCheckBox* isolation_;
 	QTableWidget* table_;
 	QPushButton* remove_,*apply_,*cancel_;
-	QString tr(const QString& ru,const QString& en) const;
+
 	void setupUi();
 	void reload();
 	void refreshTable();
