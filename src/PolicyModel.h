@@ -6,14 +6,14 @@
 #include <optional>
 
 struct CertificatePolicyEntry {
-    QString certificateBase64;
-    QStringList dnsNames;
-    QStringList cidrs;
+	QString certificateBase64;
+	QStringList dnsNames;
+	QStringList cidrs;
 };
 
 struct PolicyState {
-    std::optional<bool> platformIntegrationEnabled;
-    QList<CertificatePolicyEntry> entries;
+	std::optional<bool> platformIntegrationEnabled;
+	QList<CertificatePolicyEntry> entries;
 };
 
 QJsonObject entryToJson(const CertificatePolicyEntry &entry);

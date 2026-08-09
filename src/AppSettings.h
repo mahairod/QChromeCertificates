@@ -2,12 +2,12 @@
 #include <QString>
 
 struct AppSettings {
-    QString language;
-    QString browserId = "chrome";
-    QString policyScope = "managed";
-    int windowWidth = 980;
-    int windowHeight = 640;
+	QString language;
+	QString browserId = "chrome";
+	QString policyScope = "managed";
+	int windowWidth = 980;
+	int windowHeight = 640;
 
-    static AppSettings load();
-    void save() const;
+	static AppSettings load();
+	void save() const;
 };
