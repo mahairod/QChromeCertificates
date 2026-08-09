@@ -16,12 +16,21 @@ AppSettings AppSettings::load() {
 	AppSettings s;
 	s.language = QLocale::system().name().startsWith("ru") ? "ru" : "en";
 	QFile f(settingsPath());
-	if (!f.open(QIODevice::ReadOnly)) return s;
+	if (!f.open(QIODevice::ReadOnly))
+		return s;
 	try {
 		auto o = QJsonDocument::fromJson(f.readAll()).object();
-		if (o["language"].toString() == "ru" || o["language"].toString() == "en") s.language=o["language"].toString();
-		if (!BrowserDefinition::find(o["browserId"].toString()).id.isEmpty()) s.browserId=o["browserId"].toString();
-		if (o["policyScope"].toString()=="managed" || o["policyScope"].toString()=="recommended") s.policyScope=o["policyScope"].toString();
+
+		QString lang = o["language"].toString();
+		if (lang == "ru" || lang == "en")
+			s.language = lang;
+
+		if (!BrowserDefinition::find(o["browserId"].toString()).id.isEmpty())
+			s.browserId=o["browserId"].toString();
+
+		if (o["policyScope"].toString()=="managed" || o["policyScope"].toString()=="recommended")
+			s.policyScope = o["policyScope"].toString();
+
 		if (o["windowWidth"].toInt()>=850) s.windowWidth=o["windowWidth"].toInt();
 		if (o["windowHeight"].toInt()>=520) s.windowHeight=o["windowHeight"].toInt();
 	} catch (...) {}
@@ -29,8 +38,14 @@ AppSettings AppSettings::load() {
 }
 void AppSettings::save() const {
 	QFile f(settingsPath());
-	if (!f.open(QIODevice::WriteOnly|QIODevice::Truncate)) return;
-	QJsonObject o{{"language",language},{"browserId",browserId},{"policyScope",policyScope},
-				  {"windowWidth",windowWidth},{"windowHeight",windowHeight}};
+	if (!f.open(QIODevice::WriteOnly|QIODevice::Truncate))
+		return;
+	QJsonObject o{
+		{"language",language},
+		{"browserId",browserId},
+		{"policyScope",policyScope},
+		{"windowWidth",windowWidth},
+		{"windowHeight",windowHeight}
+	};
 	f.write(QJsonDocument(o).toJson(QJsonDocument::Indented));
 }
