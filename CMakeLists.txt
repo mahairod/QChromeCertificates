@@ -12,6 +12,8 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network LinguistTools)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
+qt_add_resources(RES "icons.qrc")
+
 add_executable(qchrocert
     src/main.cpp
     src/AppSettings.h src/AppSettings.cpp
@@ -25,6 +27,7 @@ add_executable(qchrocert
     src/PolicyBackup.h src/PolicyBackup.cpp
     src/ConstraintsDialog.h src/ConstraintsDialog.cpp
     src/MainWindow.h src/MainWindow.cpp
+    ${RES}
 )
 
 target_link_libraries(qchrocert PRIVATE

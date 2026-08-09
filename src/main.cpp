@@ -49,6 +49,8 @@ int main(int argc,char**argv){
 	AppSettings settings=AppSettings::load();
 	QString testPath=p.value(reg);
 	MainWindow w(settings,testPath);
+	const QIcon icon(":icons/app-icon.png");
+	w.setWindowIcon(icon);
 	w.show();
 	return app.exec();
 }
