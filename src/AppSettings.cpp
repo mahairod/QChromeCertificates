@@ -6,6 +6,22 @@
 #include <QJsonObject>
 #include <QLocale>
 #include <QDir>
+#include <QRegularExpression>
+
+static QString langCodes(bool tails){
+	QString patt = "";
+	for (const LangPair& lp: allLangs()) {
+		patt += lp.first;
+		patt += "|";
+	}
+	patt = patt.left(patt.length()-1);
+	if (tails)
+		patt = '(' + patt + ")([_-].+)?";
+	return patt;
+}
+
+static QRegularExpression LANG_CODE_SELECTOR(langCodes(true));
+static QRegularExpression LANG_CODE_PATT(langCodes(false));
 
 static QString settingsPath() {
 	const auto exe = QCoreApplication::applicationFilePath();
@@ -14,7 +30,8 @@ static QString settingsPath() {
 }
 AppSettings AppSettings::load() {
 	AppSettings s;
-	s.language = QLocale::system().name().startsWith("ru") ? "ru" : "en";
+	QString locLang = QLocale::system().name();
+	s.language = LANG_CODE_SELECTOR.match(locLang).isValid()  ? locLang : "en";
 	QFile f(settingsPath());
 	if (!f.open(QIODevice::ReadOnly))
 		return s;
@@ -22,7 +39,7 @@ AppSettings AppSettings::load() {
 		auto o = QJsonDocument::fromJson(f.readAll()).object();
 
 		QString lang = o["language"].toString();
-		if (lang == "ru" || lang == "en")
+		if (LANG_CODE_PATT.match(lang).hasMatch())
 			s.language = lang;
 
 		if (!BrowserDefinition::find(o["browserId"].toString()).id.isEmpty())
@@ -48,4 +65,16 @@ void AppSettings::save() const {
 		{"windowHeight",windowHeight}
 	};
 	f.write(QJsonDocument(o).toJson(QJsonDocument::Indented));
+}
+
+QList<LangPair> allLangs() {
+	QList<LangPair> result({
+		{u"en", u"English"},
+		{u"ru", u"Русский"},
+		{u"fr", u"Français"},
+		{u"es", u"Español"},
+		{u"de", u"Deutsch"},
+	});
+
+	return result;
 }

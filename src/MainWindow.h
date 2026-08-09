@@ -15,6 +15,7 @@ class MainWindow : public QMainWindow {
 	Q_OBJECT
   public:
 	MainWindow(AppSettings settings,const QString& testPath= {});
+	void setLocale(const QLocale &locale);
   protected:
 	void closeEvent(QCloseEvent*) override;
   private slots:

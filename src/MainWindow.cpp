@@ -26,6 +26,16 @@ MainWindow::MainWindow(AppSettings s,const QString& t):settings_(s),testPath_(t)
 	setupUi();
 	reload();
 }
+
+void MainWindow::setLocale(const QLocale& locale) {
+	QMainWindow::setLocale(locale);
+	setLayoutDirection(locale.textDirection());
+	qApp->removeTranslator(&translator);
+	if (translator.load(locale, "qchrocert", "_", ":/i18n")) {
+		qApp->installTranslator(&translator);
+	}
+}
+
 void MainWindow::setupUi() {
 	resize(settings_.windowWidth,settings_.windowHeight);
 	setMinimumSize(850,520);
@@ -33,6 +43,10 @@ void MainWindow::setupUi() {
 	setCentralWidget(central);
 	auto* v=new QVBoxLayout(central);
 	auto* top=new QHBoxLayout;
+
+	QLocale locale = QLocale(settings_.language);
+	setLocale(locale);
+
 	top->addWidget(new QLabel(tr("Browser:")));
 	browserBox_=new QComboBox;
 	for(auto& b:BrowserDefinition::all())
@@ -41,10 +55,17 @@ void MainWindow::setupUi() {
 	top->addWidget(browserBox_,1);
 	top->addSpacing(15);
 	top->addWidget(new QLabel(tr("Language:")));
+
 	languageBox_=new QComboBox;
-	languageBox_->addItems({"Русский","English"});
-	languageBox_->setCurrentIndex(settings_.language=="ru"?0:1);
+	int langInd = 0;
+	for (const LangPair& lp: allLangs()) {
+		languageBox_->addItem(lp.second.toString());
+		if (settings_.language==lp.first)
+			languageBox_->setCurrentIndex(langInd);
+		langInd++;
+	}
 	top->addWidget(languageBox_);
+
 	top->addSpacing(15);
 	top->addWidget(new QLabel(tr("Policy:")));
 	scopeBox_=new QComboBox;
@@ -180,15 +201,11 @@ void MainWindow::browserChanged(int i) {
 }
 void MainWindow::languageChanged(int i) {
 	if(updating_)return;
-	settings_.language = i==0?"ru":"en";
+	auto langs = allLangs();
+	settings_.language = 0 < i && i < langs.size() ? langs[i].first.toString() :"en";
 	settings_.save();
 	QLocale locale = QLocale(settings_.language);
 	setLocale(locale);
-	setLayoutDirection(locale.textDirection());
-	qApp->removeTranslator(&translator);
-	if (translator.load(locale, "qchrocert", "_", ":/i18n")) {
-		qApp->installTranslator(&translator);
-	}
 	setupUi();
 	updateButtons();
 	status_->setText(store_?store_->statusText():"");
@@ -306,8 +323,13 @@ void MainWindow::cancelPolicies() {
 	reload();
 }
 void MainWindow::exportPolicies() {
-	QString p=QFileDialog::getSaveFileName(this,tr("Save policy backup"),browser_.name+"CertificatePolicy-"+QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss")+".json",tr("Policy backups (*.json)"));
-	if(!p.isEmpty())try {
+	QString p = QFileDialog::getSaveFileName(this,
+		tr("Save policy backup"),
+		browser_.name+"CertificatePolicy-"+QDateTime::currentDateTime().toString("yyyyMMdd-HHmmss")+".json",
+		tr("Policy backups (*.json)")
+	);
+	if(!p.isEmpty())
+		try {
 			PolicyBackup::save(p,buildSaveState());
 		} catch(const std::exception& e) {
 			QMessageBox::critical(this,tr("Error"),e.what());

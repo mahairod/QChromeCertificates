@@ -1,5 +1,7 @@
 #pragma once
 #include <QString>
+#include <QPair>
+#include <QList>
 
 struct AppSettings {
 	QString language;
@@ -11,3 +13,7 @@ struct AppSettings {
 	static AppSettings load();
 	void save() const;
 };
+
+typedef QPair<QStringView,QStringView> LangPair;
+
+QList<LangPair> allLangs();

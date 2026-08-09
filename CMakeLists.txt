@@ -44,6 +44,10 @@ include(GNUInstallDirs)
 install(TARGETS qchrocert RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 qt_add_translations(qchrocert
-	TS_FILES translations/qchrocert_ru.ts
+	TS_FILES
+		translations/qchrocert_ru.ts
+		translations/qchrocert_fr.ts
+		translations/qchrocert_es.ts
+		translations/qchrocert_de.ts
 	RESOURCE_PREFIX "/i18n"
 )
