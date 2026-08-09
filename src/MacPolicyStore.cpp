@@ -31,7 +31,7 @@ PolicyState MacPolicyStore::load() {
 			continue;
 		}
 		if(r.isStartElement() && key=="CAPlatformIntegrationEnabled" && (r.name()=="true"||r.name()=="false")) {
-			s.platformIntegrationEnabled=(r.name().data()=="false");
+			s.platformIntegrationEnabled=(r.name()=="false");
 			key.clear();
 			continue;
 		}
