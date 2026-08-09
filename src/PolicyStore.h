@@ -1,7 +1,8 @@
 #pragma once
 #include "PolicyModel.h"
 #include "BrowserDefinition.h"
-#include <QString>\n#include <memory>
+#include <QString>
+#include <memory>
 
 enum class PolicyScope { Managed, Recommended };
 

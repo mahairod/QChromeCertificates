@@ -9,7 +9,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
 
 add_executable(qchrocert
@@ -20,7 +20,7 @@ add_executable(qchrocert
     src/CertificateMetadata.h src/CertificateMetadata.cpp
     src/PolicyStore.h src/PolicyStore.cpp
     src/LinuxPolicyStore.h src/LinuxPolicyStore.cpp
-    src/MacosPolicyStore.h src/MacosPolicyStore.cpp
+    src/MacPolicyStore.h src/MacPolicyStore.cpp
     src/WindowsPolicyStore.h src/WindowsPolicyStore.cpp
     src/PolicyBackup.h src/PolicyBackup.cpp
     src/ConstraintsDialog.h src/ConstraintsDialog.cpp
@@ -28,7 +28,7 @@ add_executable(qchrocert
 )
 
 target_link_libraries(qchrocert PRIVATE
-    Qt6::Core Qt6::Gui Qt6::Widgets OpenSSL::Crypto
+    Qt6::Core Qt6::Gui Qt6::Widgets Qt6::Network OpenSSL::Crypto
 )
 
 if(WIN32)

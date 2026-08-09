@@ -1,4 +1,4 @@
-# QChromeCertificates — Qt 6 port
+# qchrocert — Qt 6 port
 
 First cross-platform C++/Qt 6 implementation of the functionality in
 `mahairod/QChromeCertificates`.
@@ -49,7 +49,7 @@ cmake --build build --config Release
 ## Self-test
 
 ```sh
-./QChromeCertificates --self-test
+./qchrocert --self-test
 ```
 
 On Windows this creates a temporary HKCU test key. On Linux/macOS it only

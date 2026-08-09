@@ -1,6 +1,6 @@
 #include "PolicyStore.h"
 #include "LinuxPolicyStore.h"
-#include "MacosPolicyStore.h"
+#include "MacPolicyStore.h"
 #include "WindowsPolicyStore.h"
 std::unique_ptr<PolicyStore> PolicyStore::create(const BrowserDefinition&b,PolicyScope scope,const QString&testPath){
 #ifdef Q_OS_WIN

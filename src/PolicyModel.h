@@ -2,7 +2,8 @@
 #include <QString>
 #include <QList>
 #include <QJsonObject>
-#include <QJsonArray>\n#include <optional>
+#include <QJsonArray>
+#include <optional>
 
 struct CertificatePolicyEntry {
     QString certificateBase64;

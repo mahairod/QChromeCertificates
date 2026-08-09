@@ -19,8 +19,11 @@ QList<BrowserDefinition> BrowserDefinition::all() {
     };
 }
 BrowserDefinition BrowserDefinition::find(const QString &id) {
-    for (const auto &b : all()) if (b.id.compare(id, Qt::CaseInsensitive)==0) return b;
-    return all().first();
+	auto list = all();
+    for (const auto &b : list)
+		if (b.id.compare(id, Qt::CaseInsensitive)==0)
+			return b;
+    return list.first();
 }
 QString BrowserDefinition::resolveExecutable() const {
 #ifdef Q_OS_WIN

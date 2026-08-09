@@ -11,6 +11,7 @@
 #include <QDir>
 #endif
 #include <QJsonDocument>
+#include <QRegularExpression>
 #include <stdexcept>
 
 #ifdef Q_OS_WIN

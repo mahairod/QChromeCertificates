@@ -13,11 +13,9 @@ LinuxPolicyStore::LinuxPolicyStore(const BrowserDefinition &b, PolicyScope s, co
     if(root_.isEmpty()) root_=qEnvironmentVariable("QCC_LINUX_POLICY_ROOT");
     if(root_.isEmpty()) root_=browser_.linuxPolicyRoot;
 }
-
 QString LinuxPolicyStore::filePath() const {
     return root_ + "/" + (scope_==PolicyScope::Managed ? "managed" : "recommended") + "/qchrome-certificates.json";
 }
-
 PolicyState LinuxPolicyStore::load() {
     PolicyState s;
     QFile f(filePath()); if(!f.open(QIODevice::ReadOnly)) return s;
@@ -31,7 +29,6 @@ PolicyState LinuxPolicyStore::load() {
     }
     return s;
 }
-
 void LinuxPolicyStore::save(const PolicyState &s) {
     const QString dir=QFileInfo(filePath()).absolutePath();
     if(!QDir().mkpath(dir)) throw std::runtime_error("Cannot create Chrome policy directory.");
@@ -45,11 +42,9 @@ void LinuxPolicyStore::save(const PolicyState &s) {
     f.write(QJsonDocument(o).toJson(QJsonDocument::Indented));
     if(!f.commit()) throw std::runtime_error("Cannot commit Chrome policy file.");
 }
-
 QString LinuxPolicyStore::statusText() const {
     return "Linux: " + filePath();
 }
-
 bool LinuxPolicyStore::needsElevation() const {
     return filePath().startsWith("/etc/");
 }
