@@ -10,6 +10,9 @@
 - Chromium.
 - В перспективе - другие Chromium-совместимые браузеры (Opera, Vivaldi, Yandex, Atom)
 
+Примечание: браузер Opera не использует корпоративыне политики, но у него есть свой механизм ограничений на импортированные сертификаты на основе Chrome Root Store.
+При импорте сертификата в Opera, можно явно указать на какие домены и адреса он распространяется.
+
 <p align="center"><img src="docs/screenshot.png" alt="QChromeCertificates"/></p>
 
 First cross-platform C++/Qt 6 implementation of the functionality in
