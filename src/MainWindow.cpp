@@ -51,6 +51,9 @@ void MainWindow::setupUi() {
 	browserBox_=new QComboBox;
 	for(auto& b:BrowserDefinition::all())
 		browserBox_->addItem(b.name,b.id);
+	for(auto& b: settings_.extraBrowsers)
+		browserBox_->addItem(b.name, b.id);
+
 	browserBox_->setCurrentText(browser_.name);
 	top->addWidget(browserBox_,1);
 	top->addSpacing(15);
@@ -194,7 +197,7 @@ void MainWindow::browserChanged(int i) {
 		updating_=false;
 		return;
 	}
-	browser_=BrowserDefinition::find(browserBox_->currentData().toString());
+	browser_=BrowserDefinition::find(browserBox_->currentData().toString(), settings_.extraBrowsers);
 	settings_.browserId=browser_.id;
 	settings_.save();
 	reload();

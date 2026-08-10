@@ -14,4 +14,5 @@ struct BrowserDefinition {
 	QString resolveExecutable() const;
 	static QList<BrowserDefinition> all();
 	static BrowserDefinition find(const QString &id);
+	static BrowserDefinition find(const QString &id, const QList<BrowserDefinition>& extra);
 };

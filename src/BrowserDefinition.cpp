@@ -18,13 +18,22 @@ QList<BrowserDefinition> BrowserDefinition::all() {
 		 "/etc/chromium/policies","org.chromium.Chromium","chromium","chrome://policy/"}
 	};
 }
-BrowserDefinition BrowserDefinition::find(const QString &id) {
+
+BrowserDefinition BrowserDefinition::find(const QString& id, const QList<BrowserDefinition>& extra) {
 	auto list = all();
 	for (const auto &b : list)
 		if (b.id.compare(id, Qt::CaseInsensitive)==0)
 			return b;
+	for (const auto &b : extra)
+		if (b.id.compare(id, Qt::CaseInsensitive)==0)
+			return b;
 	return list.first();
 }
+
+BrowserDefinition BrowserDefinition::find(const QString &id) {
+	return find(id, {});
+}
+
 QString BrowserDefinition::resolveExecutable() const {
 #ifdef Q_OS_WIN
 	if (id=="chrome") return "chrome.exe";

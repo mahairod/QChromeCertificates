@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QLocale>
 #include <QDir>
 #include <QRegularExpression>
@@ -36,20 +37,48 @@ AppSettings AppSettings::load() {
 	if (!f.open(QIODevice::ReadOnly))
 		return s;
 	try {
-		auto o = QJsonDocument::fromJson(f.readAll()).object();
+		QByteArray data = f.readAll();
+		auto jo = QJsonDocument::fromJson(data);
+		auto o = jo.object();
 
 		QString lang = o["language"].toString();
 		if (LANG_CODE_PATT.match(lang).hasMatch())
 			s.language = lang;
 
-		if (!BrowserDefinition::find(o["browserId"].toString()).id.isEmpty())
-			s.browserId=o["browserId"].toString();
+		QString browserId = o["browserId"].toString();
+
+		if (o["browsers"].isArray()) {
+			auto brs = o["browsers"].toArray();
+			for (const auto& bVal: brs) {
+				if (!bVal.isObject()) continue;
+				auto b = bVal.toObject();
+				BrowserDefinition bd;
+				bd.id = 	b["id"].toString();
+				bd.name = 	b["name"].toString();
+				bd.windowsRegistryPath = b["windowsRegistryPath"].toString();
+				bd.linuxPolicyRoot = 	b["linuxPolicyRoot"].toString();
+				bd.macBundleId = 		b["macBundleId"].toString();
+				bd.executable = 		b["executable"].toString();
+				bd.policyUrl = 			b["policyUrl"].toString();
+
+				s.extraBrowsers.append(bd);
+				if (bd.id == browserId) {
+					s.browserId = browserId;
+				}
+			}
+		}
+
+		if (!BrowserDefinition::find(browserId).id.isEmpty())
+			s.browserId = browserId;
 
 		if (o["policyScope"].toString()=="managed" || o["policyScope"].toString()=="recommended")
 			s.policyScope = o["policyScope"].toString();
 
-		if (o["windowWidth"].toInt()>=850) s.windowWidth=o["windowWidth"].toInt();
-		if (o["windowHeight"].toInt()>=520) s.windowHeight=o["windowHeight"].toInt();
+		if (o["windowWidth"].toInt()>=850)
+			s.windowWidth = o["windowWidth"].toInt();
+		if (o["windowHeight"].toInt()>=520)
+			s.windowHeight = o["windowHeight"].toInt();
+
 	} catch (...) {}
 	return s;
 }
@@ -57,9 +86,24 @@ void AppSettings::save() const {
 	QFile f(settingsPath());
 	if (!f.open(QIODevice::WriteOnly|QIODevice::Truncate))
 		return;
+
+	QJsonArray browsers;
+	for (auto b: extraBrowsers) {
+		browsers.append(QJsonObject{
+			{"id", b.id},
+			{"name", b.name},
+			{"windowsRegistryPath", b.windowsRegistryPath},
+			{"linuxPolicyRoot", b.linuxPolicyRoot},
+			{"macBundleId", b.macBundleId},
+			{"executable", b.executable},
+			{"policyUrl", b.policyUrl}
+		});
+	}
+
 	QJsonObject o{
 		{"language",language},
 		{"browserId",browserId},
+		{"browsers",browsers},
 		{"policyScope",policyScope},
 		{"windowWidth",windowWidth},
 		{"windowHeight",windowHeight}
