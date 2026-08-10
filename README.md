@@ -79,3 +79,8 @@ registry/file/plist persistence is behind a common `PolicyStore` interface.
 
 The original v2 behavior intentionally preserves legacy `permitted_cidrs`
 entries but refuses to apply them through the GUI. That behavior is retained.
+
+## License
+
+CC BY-NC-SA 4.0
+
