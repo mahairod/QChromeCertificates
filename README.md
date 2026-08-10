@@ -1,4 +1,16 @@
-# qchrocert — Qt 6 port
+# QChromeCertificates — Qt 6 port
+
+## Описание
+
+Графическое приложение для Windows, управляющее изолированным набором доверенных CA-сертификатов в четырёх Chromium-браузерах:
+
+- Google Chrome;
+- Microsoft Edge;
+- Brave;
+- Chromium.
+- В перспективе - другие Chromium-совместимые браузеры (Opera, Vivaldi, Yandex, Atom)
+
+<p align="center"><img src="docs/screenshot.png" alt="QChromeCertificates"/></p>
 
 First cross-platform C++/Qt 6 implementation of the functionality in
 `mahairod/QChromeCertificates`.
