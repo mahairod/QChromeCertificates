@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release v3.0"
+        required: true
+        type: string
 
 env:
   QT_VERSION:     "6.8.0"
@@ -73,6 +79,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
@@ -172,11 +180,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           files: |
-            release/*.exe
-            release/*.zip
-            release/*.deb
-            release/*.dmg
-            release/*.rpm
-            release/*.tgz
+            release/**/*.exe
+            release/**/*.zip
+            release/**/*.deb
+            release/**/*.dmg
+            release/**/*.rpm
+            release/**/*.tgz          
           generate_release_notes: true
