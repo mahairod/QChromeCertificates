@@ -1,5 +1,4 @@
-name: Build and Release
-
+name: MakeRelease
 on:
   push:
     tags:
@@ -159,9 +158,6 @@ jobs:
         name: "${{ matrix.artifact }}-logs"
         path: ${{ steps.strings.outputs.build-output-dir }}
 
-  # ==========================================================
-  # GitHub Release
-  # ==========================================================
   release:
     name: Create GitHub Release
     needs: build
