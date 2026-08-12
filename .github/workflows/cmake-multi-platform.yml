@@ -38,24 +38,28 @@ jobs:
             qtplatform: windows
             qt_arch: win64_msvc2022_64
             artifact: windows-x64
+            packer: NSIS
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
             qtplatform: linux
             qt_arch: linux_gcc_64
             artifact: linux-x64
+            packer: DEB
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
             qtplatform: linux
             qt_arch: linux_gcc_64
             artifact: linux-x64
+            packer: DEB
           - os: macos-15
             c_compiler: clang
             cpp_compiler: clang++
             qtplatform: mac
             qt_arch: clang_64
             artifact: macos
+            packer: DragNDrop
         exclude:
           - os: windows-2022
             c_compiler: gcc
@@ -110,11 +114,16 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
 
-    - name: Package
+    - name: Install
       run: cmake --install build --config Release --prefix package
+
+    - name: Package
+      run: |
+        cd ${{ steps.strings.outputs.build-output-dir }}
+        cpack -G ${{ matrix.packer }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: package/
+        path: ${{github.workspace}}/dist
