@@ -88,6 +88,8 @@ install(SCRIPT ${deploy_script})
 
 endif ()
 
+file(INSTALL ${CMAKE_SOURCE_DIR}/app-icon.png DESTINATION ${CMAKE_BINARY_DIR})
+
 set(CPACK_PACKAGE_NAME ${CMAKE_PROJECT_NAME})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Chrome Certificates Manager")
 set(CPACK_PACKAGE_VENDOR "Elliptica")
