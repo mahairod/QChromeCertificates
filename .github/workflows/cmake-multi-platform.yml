@@ -131,14 +131,7 @@ jobs:
       with:
         name: ${{ matrix.artifact }}
         if-no-files-found: error
-        path: |
-          $distdir/*.exe
-          $distdir/*.dmg
-          $distdir/*.zip
-          $distdir/*.tar.gz
-          $distdir/*.deb
-          $distdir/*.rpm
-          $distdir/*.sha*
+        path: ${{ steps.strings.outputs.build-output-dir }}/dist/*.*
 
     - name: Upload logs
       if: ${{ failure() }}
