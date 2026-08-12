@@ -16,6 +16,8 @@ jobs:
   build:
     name: Build for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      distdir: ${{ github.workspace }}/build/dist
 
     strategy:
       # Set fail-fast to false to ensure that feedback is delivered for all matrix combinations. Consider changing this to true when your workflow is stable.
@@ -126,4 +128,18 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: ${{ steps.strings.outputs.build-output-dir }}/dist
+        path: |
+          $distdir/*.exe
+          $distdir/*.dmg
+          $distdir/*.zip
+          $distdir/*.tar.gz
+          $distdir/*.deb
+          $distdir/*.rpm
+          $distdir/*.sha*
+
+    - name: Upload logs
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: "${{ matrix.artifact }}-logs"
+        path: $distdir
