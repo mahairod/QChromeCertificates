@@ -1,4 +1,6 @@
 name: MakeRelease
+permissions:
+  contents: write
 on:
   push:
     tags:
@@ -6,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release v3.0"
+        description: "Tag id"
         required: true
         type: string
 
