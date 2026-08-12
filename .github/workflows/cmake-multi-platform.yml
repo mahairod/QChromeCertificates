@@ -52,6 +52,7 @@ jobs:
             artifact: linux-x64
           - os: macos-15
             c_compiler: clang
+            cpp_compiler: clang++
             qtplatform: mac
             qt_arch: clang_64
             artifact: macos
@@ -110,8 +111,10 @@ jobs:
       run: ctest --build-config ${{ matrix.build_type }}
 
     - name: Package
-      run: |
-        cmake --install build \
-          --config Release \
-          --prefix package
+      run: cmake --install build --config Release --prefix package
 
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact }}
+        path: package/
