@@ -33,6 +33,7 @@ jobs:
         os: [ubuntu-latest, windows-2022, macos-15]
         build_type: [Release]
         c_compiler: [gcc, clang, cl]
+        package: [rpm, deb, other]
         include:
           - os: windows-2022
             c_compiler: cl
@@ -40,21 +41,21 @@ jobs:
             qtplatform: windows
             qt_arch: win64_msvc2022_64
             artifact: windows-x64
-            packer: NSIS
+            packer: NSIS;WIX
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
             qtplatform: linux
             qt_arch: linux_gcc_64
             artifact: linux-x64
-            packer: DEB
+            packer: DEB;RPM;7Z;TXZ
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
             qtplatform: linux
             qt_arch: linux_gcc_64
-            artifact: linux-x64
-            packer: DEB
+            artifact: linux-clang-x64
+            packer: DEB;RPM;7Z;TXZ
           - os: macos-15
             c_compiler: clang
             cpp_compiler: clang++
@@ -115,6 +116,16 @@ jobs:
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
+
+    - name: Install RPM tools
+      if: ${{ contains( matrix.qtplatform , 'linux') }}
+      run: sudo apt-get install -y rpm
+
+    - name: Check RPM tools
+      run: |
+        cmake --version
+        cpack --version
+        rpmbuild --version
 
     - name: Install
       run: cmake --install build --config ${{ env.BUILD_TYPE }} --prefix package
