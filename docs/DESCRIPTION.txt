@@ -1,0 +1,30 @@
+QChromeCertificates
+
+Графическое приложение для Windows/MacOS/Linux, управляющее изолированным набором доверенных CA-сертификатов в четырёх Chromium-браузерах:
+
+- Google Chrome;
+- Microsoft Edge;
+- Brave;
+- Chromium.
+- В перспективе - другие Chromium-совместимые браузеры (Opera, Vivaldi, Yandex, Atom)
+
+What is implemented
+
+- 'CAPlatformIntegrationEnabled'
+- 'CACertificatesWithConstraints'
+- Chrome, Edge, Brave and Chromium browser definitions
+- Windows HKCU policy storage
+- Windows UAC fallback through 'ShellExecuteExW' + 'reg.exe'
+- Linux JSON policy files ('managed' / 'recommended')
+- macOS plist policy files ('/Library/Managed Preferences' or user Preferences)
+- certificate loading/CA validation using OpenSSL
+- DNS normalization including IDN/punycode
+- CIDR parsing/normalization for legacy v1 entries
+- JSON import/export
+- dirty-state handling
+- multilingual UI
+- '--self-test'
+- CMake + Qt 6
+
+License: CC BY-NC-SA 4.0
+

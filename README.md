@@ -2,7 +2,7 @@
 
 ## Описание
 
-Графическое приложение для Windows, управляющее изолированным набором доверенных CA-сертификатов в четырёх Chromium-браузерах:
+Графическое приложение для Windows/MacOS/Linux, управляющее изолированным набором доверенных CA-сертификатов в четырёх Chromium-браузерах:
 
 - Google Chrome;
 - Microsoft Edge;
@@ -32,7 +32,7 @@ First cross-platform C++/Qt 6 implementation of the functionality in
 - CIDR parsing/normalization for legacy v1 entries
 - JSON import/export
 - dirty-state handling
-- bilingual English/Russian UI
+- multilingual UI
 - `--self-test`
 - CMake + Qt 6
 
