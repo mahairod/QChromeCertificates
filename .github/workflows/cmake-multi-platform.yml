@@ -133,7 +133,7 @@ jobs:
     - name: Package
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: |
-        cpack -G ${{ matrix.packer }}
+        cpack -G "${{ matrix.packer }}"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
