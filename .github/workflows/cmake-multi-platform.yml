@@ -131,7 +131,21 @@ jobs:
       with:
         name: ${{ matrix.artifact }}
         if-no-files-found: error
-        path: ${{ steps.strings.outputs.build-output-dir }}/dist/*.*
+        path: |
+          ${{ env.distdir }}/*.exe
+          ${{ env.distdir }}/*.zip
+          ${{ env.distdir }}/*.deb
+          ${{ env.distdir }}/*.dmg
+          ${{ env.distdir }}/*.rpm
+          ${{ env.distdir }}/*.tgz
+
+    - name: Upload signatures
+      uses: actions/upload-artifact@v4
+      env:
+        distdir: ${{ steps.strings.outputs.build-output-dir }}/dist
+      with:
+        name: "${{ matrix.artifact }}-signature"
+        path: ${{ env.distdir }}/*.sha*
 
     - name: Upload logs
       if: ${{ failure() }}
