@@ -115,15 +115,15 @@ jobs:
       run: ctest --build-config ${{ matrix.build_type }}
 
     - name: Install
-      run: cmake --install build --config Release --prefix package
+      run: cmake --install build --config ${{ env.BUILD_TYPE }} --prefix package
 
     - name: Package
+      working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: |
-        cd ${{ steps.strings.outputs.build-output-dir }}
         cpack -G ${{ matrix.packer }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact }}
-        path: ${{github.workspace}}/dist
+        path: ${{ steps.strings.outputs.build-output-dir }}/dist
