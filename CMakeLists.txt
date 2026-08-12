@@ -69,7 +69,7 @@ include(GNUInstallDirs)
 set(CMAKE_INSTALL_PREFIX package)
 
 # Install the executable to "${CMAKE_INSTALL_PREFIX}/bin".
-install(TARGETS ${MAIN_EXECUTABLE}
+install(TARGETS ${MAIN_EXECUTABLE} app-icon.png
 	BUNDLE  DESTINATION .
 	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
