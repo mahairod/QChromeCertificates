@@ -36,7 +36,7 @@ jobs:
             c_compiler: cl
             cpp_compiler: cl
             qtplatform: windows
-            qt_arch: win64_msvc2019_64
+            qt_arch: win64_msvc2022_64
             artifact: windows-x64
           - os: ubuntu-latest
             c_compiler: gcc
@@ -62,6 +62,10 @@ jobs:
             c_compiler: clang
           - os: ubuntu-latest
             c_compiler: cl
+          - os: macos-15
+            c_compiler: cl
+          - os: macos-15
+            c_compiler: gcc
 
     steps:
     - uses: actions/checkout@v4
