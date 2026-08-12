@@ -126,8 +126,11 @@ jobs:
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
+      env:
+        distdir: ${{ steps.strings.outputs.build-output-dir }}/dist
       with:
         name: ${{ matrix.artifact }}
+        if-no-files-found: fail
         path: |
           $distdir/*.exe
           $distdir/*.dmg
@@ -138,8 +141,8 @@ jobs:
           $distdir/*.sha*
 
     - name: Upload logs
-      if: ${{ always() }}
+      if: ${{ failure() }}
       uses: actions/upload-artifact@v4
       with:
         name: "${{ matrix.artifact }}-logs"
-        path: $distdir
+        path: ${{ steps.strings.outputs.build-output-dir }}
