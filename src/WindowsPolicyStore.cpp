@@ -1,8 +1,9 @@
 #include "WindowsPolicyStore.h"
 #ifdef Q_OS_WIN
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <sddl.h>
 #include <shellapi.h>
-#include <windows.h>
 
 #include <QCoreApplication>
 #include <QDir>
