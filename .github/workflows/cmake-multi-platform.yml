@@ -35,20 +35,24 @@ jobs:
           - os: windows-2022
             c_compiler: cl
             cpp_compiler: cl
+            qtplatform: windows
             qt_arch: win64_msvc2019_64
             artifact: windows-x64
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
+            qtplatform: linux
             qt_arch: linux_gcc_64
             artifact: linux-x64
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
+            qtplatform: linux
             qt_arch: linux_gcc_64
             artifact: linux-x64
           - os: macos-15
             c_compiler: clang
+            qtplatform: mac
             qt_arch: clang_64
             artifact: macos
         exclude:
@@ -66,7 +70,7 @@ jobs:
       uses: jurplel/install-qt-action@v4
       with:
         version: ${{ env.QT_VERSION }}
-        host: ${{ matrix.os == 'windows-2022' && 'windows' || matrix.os == 'ubuntu-24.04' && 'linux' || 'mac' }}
+        host: ${{ matrix.qtplatform }}
         target: desktop
         arch: ${{ matrix.qt_arch }}
         cache: true
