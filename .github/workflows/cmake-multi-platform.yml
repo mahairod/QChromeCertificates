@@ -149,6 +149,8 @@ jobs:
           ${{ env.distdir }}/*.dmg
           ${{ env.distdir }}/*.rpm
           ${{ env.distdir }}/*.tgz
+          ${{ env.distdir }}/*.7z
+          ${{ env.distdir }}/*.tar.xz
 
     - name: Upload signatures
       uses: actions/upload-artifact@v4

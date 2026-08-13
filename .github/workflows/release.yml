@@ -44,21 +44,21 @@ jobs:
             qtplatform: windows
             qt_arch: win64_msvc2022_64
             artifact: windows-x64
-            packer: NSIS
+            packer: 'NSIS;WIX'
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
             qtplatform: linux
             qt_arch: linux_gcc_64
             artifact: linux-x64
-            packer: DEB
+            packer: 'DEB;RPM;7Z;TXZ'
           - os: ubuntu-latest
             c_compiler: clang
             cpp_compiler: clang++
             qtplatform: linux
             qt_arch: linux_gcc_64
-            artifact: linux-x64
-            packer: DEB
+            artifact: linux-clang-x64
+            packer: 'DEB;RPM;7Z;TXZ'
           - os: macos-15
             c_compiler: clang
             cpp_compiler: clang++
@@ -125,10 +125,21 @@ jobs:
     - name: Install
       run: cmake --install build --config ${{ env.BUILD_TYPE }} --prefix package
 
+    - name: Install RPM tools
+      if: ${{ contains( matrix.qtplatform , 'linux') }}
+      run: sudo apt-get install -y rpm
+
+    - name: Check RPM tools
+      if: ${{ contains( matrix.qtplatform , 'linux') }}
+      run: |
+        cmake --version
+        cpack --version
+        rpmbuild --version
+
     - name: Package
       working-directory: ${{ steps.strings.outputs.build-output-dir }}
       run: |
-        cpack -G ${{ matrix.packer }}
+        cpack -G "${{ matrix.packer }}"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -142,8 +153,11 @@ jobs:
           ${{ env.distdir }}/*.zip
           ${{ env.distdir }}/*.deb
           ${{ env.distdir }}/*.dmg
+          ${{ env.distdir }}/*.msi
           ${{ env.distdir }}/*.rpm
           ${{ env.distdir }}/*.tgz
+          ${{ env.distdir }}/*.7z
+          ${{ env.distdir }}/*.tar.xz
 
     - name: Upload signatures
       uses: actions/upload-artifact@v4
@@ -184,6 +198,9 @@ jobs:
             release/**/*.zip
             release/**/*.deb
             release/**/*.dmg
+            release/**/*.msi
             release/**/*.rpm
-            release/**/*.tgz          
+            release/**/*.tgz
+            release/**/*.tar.xz
+            release/**/*.7z
           generate_release_notes: true
